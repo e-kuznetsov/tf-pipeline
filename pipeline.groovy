@@ -20,6 +20,7 @@ pipeline {
                                 relativeTargetDir: 'tf-devstack']],
                             submoduleCfg: [], 
                             userRemoteConfigs: [[url: 'https://github.com/tungstenfabric/tf-devstack.git']]])
+                sh "tar cvzf tf-devstack.tgz tf-devstack/"
             }
         }
         stage('Spin VM') {
@@ -72,12 +73,13 @@ pipeline {
         }
         stage('Deploy tf-defstack'){
             steps{
-                sh "cat .instanceIp > ansible-devstack/hosts.ini"
-                ansiblePlaybook credentialsId: 'centos-jenkins',
-                                disableHostKeyChecking: true,
-                                extras: '--ssh-common-args=\"-o ConnectionAttempts=100\",
-                                inventory: 'ansible-devstack/hosts.ini',
-                                playbook: 'ansible-devstack/devstack.yml'
+                sshagent(credentials : ['centos-jenkins']) {
+                    sh '''
+                    scp ./tf-devstack.tgz centos@$(cat .instanceIp):./
+                    ssh -o StrictHostKeyChecking=no centos@$(cat .instanceIp) tar -xzf tf-devstack.tgz
+                    ssh -o StrictHostKeyChecking=no centos@$(cat .instanceIp) ./k8s_manifests/startup.sh'
+                    '''
+                }
             }
         }
     }

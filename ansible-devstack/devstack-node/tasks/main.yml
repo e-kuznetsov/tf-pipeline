@@ -1,17 +1,18 @@
 - name: upgrade kernel
   yum: 
-    name: kernel-*
+    name: "{{ packages }}"
     state: latest
-  register: upgrade_kernel
+  vars:
+    packages:
+      - kernel-*
+      - git
 
 - name: restart server
   shell: sleep 2 && shutdown -r now "Ansible updates triggered"
   async: 1
   poll: 0
   become: true
-  when: upgrade_kernel is defined and upgrade_kernel.changed
 
 - name: wait for server to come back online
   wait_for_connection:
     delay: 30
-  when: upgrade_kernel is defined and upgrade_kernel.changed
