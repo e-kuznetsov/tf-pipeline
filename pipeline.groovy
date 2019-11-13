@@ -77,7 +77,7 @@ pipeline {
                     sh '''
                     scp ./tf-devstack.tgz centos@$(cat .instanceIp):./
                     ssh -o StrictHostKeyChecking=no centos@$(cat .instanceIp) tar -xzf tf-devstack.tgz
-                    ssh -o StrictHostKeyChecking=no centos@$(cat .instanceIp) ./k8s_manifests/startup.sh'
+                    ssh -o StrictHostKeyChecking=no centos@$(cat .instanceIp) ./tf-devstack/k8s_manifests/startup.sh
                     '''
                 }
             }
