@@ -1,0 +1,6 @@
+- name: Configure node
+  hosts: all
+  gather_facts: false
+  become: yes
+  roles:
+    - role: devstack-node

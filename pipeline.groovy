@@ -7,6 +7,22 @@ pipeline {
         IMAGE_CENTOS7 = "ami-e802818c"
         }
     stages {
+        stage('Checkout'){
+            steps{
+                checkout([$class: 'GitSCM', branches: [[name: '*/master']],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [[$class: 'RelativeTargetDirectory',
+                                relativeTargetDir: 'tf-devstack']],
+                            submoduleCfg: [], 
+                            userRemoteConfigs: [[url: 'https://github.com/tungstenfabric/tf-devstack.git']]])
+                checkout([$class: 'GitSCM', branches: [[name: '*/master']],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [[$class: 'RelativeTargetDirectory', 
+                                relativeTargetDir: 'tf-devstack']],
+                            submoduleCfg: [], 
+                            userRemoteConfigs: [[url: 'https://github.com/tungstenfabric/tf-devstack.git']]])
+            }
+        }
         stage('Spin VM') {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
@@ -19,7 +35,7 @@ pipeline {
                     --region $AWS_REGION \
                     --image-id $IMAGE_CENTOS7 \
                     --count 1 \
-                    --instance-type t2.small \
+                    --instance-type t2.micro \
                     --key-name jenkins \
                     --security-group-ids $AWS_SG \
                     --subnet-id $AWS_SUBNET | \
@@ -45,6 +61,15 @@ pipeline {
                 '''
                 }
             }
+        }
+        stage('Configure VM'){
+            sh "cat .instanceIp > ansible-devstack/hosts.ini"
+            ansiblePlaybook become: true,
+                            becomeUser: 'centos',
+                            credentialsId: 'centos-jenkins',
+                            disableHostKeyChecking: true,
+                            inventory: 'ansible-devstack/hosts.ini',
+                            playbook: 'ansible-devstack/devstack-node.yml'
         }
     }
     post {
