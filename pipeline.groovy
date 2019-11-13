@@ -33,7 +33,7 @@ pipeline {
                     --region $AWS_REGION \
                     --image-id $IMAGE_CENTOS7 \
                     --count 1 \
-                    --instance-type t2.medium \
+                    --instance-type t2.xlarge \
                     --key-name jenkins \
                     --security-group-ids $AWS_SG \
                     --subnet-id $AWS_SUBNET | \
@@ -65,7 +65,7 @@ pipeline {
                 sh "cat .instanceIp > ansible-devstack/hosts.ini"
                 ansiblePlaybook credentialsId: 'centos-jenkins',
                                 disableHostKeyChecking: true,
-                                extras: '--ssh-common-args='-o ConnectionAttempts=100'',
+                                extras: '--ssh-common-args=\"-o ConnectionAttempts=100\"',
                                 inventory: 'ansible-devstack/hosts.ini',
                                 playbook: 'ansible-devstack/devstack-node.yml'
             }
@@ -75,7 +75,7 @@ pipeline {
                 sh "cat .instanceIp > ansible-devstack/hosts.ini"
                 ansiblePlaybook credentialsId: 'centos-jenkins',
                                 disableHostKeyChecking: true,
-                                extras: '--ssh-common-args='-o ConnectionAttempts=100'',
+                                extras: '--ssh-common-args=\"-o ConnectionAttempts=100\",
                                 inventory: 'ansible-devstack/hosts.ini',
                                 playbook: 'ansible-devstack/devstack.yml'
             }
