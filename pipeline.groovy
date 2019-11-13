@@ -10,11 +10,10 @@ pipeline {
         stage('Checkout'){
             steps{
                 checkout([$class: 'GitSCM', branches: [[name: '*/master']],
-                            doGenerateSubmoduleConfigurations: false,
-                            extensions: [[$class: 'RelativeTargetDirectory',
-                                relativeTargetDir: 'tf-devstack']],
-                            submoduleCfg: [], 
-                            userRemoteConfigs: [[url: 'https://github.com/tungstenfabric/tf-devstack.git']]])
+                doGenerateSubmoduleConfigurations: false,
+                extensions: [],
+                submoduleCfg: [],
+                userRemoteConfigs: [[url: 'https://github.com/e-kuznetsov/tf-pipeline.git']]])
                 checkout([$class: 'GitSCM', branches: [[name: '*/master']],
                             doGenerateSubmoduleConfigurations: false,
                             extensions: [[$class: 'RelativeTargetDirectory', 
@@ -30,12 +29,11 @@ pipeline {
                                 accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                                 secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                 sh '''
-                PATH="$HOME/.local/bin:${PATH}"
                 InstanceId=$(aws ec2 run-instances \
                     --region $AWS_REGION \
                     --image-id $IMAGE_CENTOS7 \
                     --count 1 \
-                    --instance-type t2.micro \
+                    --instance-type t2.medium \
                     --key-name jenkins \
                     --security-group-ids $AWS_SG \
                     --subnet-id $AWS_SUBNET | \
@@ -63,13 +61,24 @@ pipeline {
             }
         }
         stage('Configure VM'){
-            sh "cat .instanceIp > ansible-devstack/hosts.ini"
-            ansiblePlaybook become: true,
-                            becomeUser: 'centos',
-                            credentialsId: 'centos-jenkins',
-                            disableHostKeyChecking: true,
-                            inventory: 'ansible-devstack/hosts.ini',
-                            playbook: 'ansible-devstack/devstack-node.yml'
+            steps{
+                sh "cat .instanceIp > ansible-devstack/hosts.ini"
+                ansiblePlaybook credentialsId: 'centos-jenkins',
+                                disableHostKeyChecking: true,
+                                extras: '--ssh-common-args='-o ConnectionAttempts=100'',
+                                inventory: 'ansible-devstack/hosts.ini',
+                                playbook: 'ansible-devstack/devstack-node.yml'
+            }
+        }
+        stage('Deploy tf-defstack'){
+            steps{
+                sh "cat .instanceIp > ansible-devstack/hosts.ini"
+                ansiblePlaybook credentialsId: 'centos-jenkins',
+                                disableHostKeyChecking: true,
+                                extras: '--ssh-common-args='-o ConnectionAttempts=100'',
+                                inventory: 'ansible-devstack/hosts.ini',
+                                playbook: 'ansible-devstack/devstack.yml'
+            }
         }
     }
     post {
@@ -79,7 +88,6 @@ pipeline {
                 accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                 secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
             sh '''
-            PATH="$HOME/.local/bin:${PATH}"
             aws ec2 terminate-instances --region $AWS_REGION --instance-ids $(cat .instanseId)
             '''
             deleteDir()

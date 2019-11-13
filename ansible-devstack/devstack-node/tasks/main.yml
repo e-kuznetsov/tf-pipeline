@@ -14,5 +14,4 @@
 - name: wait for server to come back online
   wait_for_connection:
     delay: 30
-    timeout: 2400
   when: upgrade_kernel is defined and upgrade_kernel.changed
